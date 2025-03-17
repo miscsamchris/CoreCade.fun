@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Flask App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Flask App</div>
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/about">About</a></li>
+            <li><a href="/contact">Contact</a></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <section class="hero">
+            <h1>Welcome to Our Flask Application</h1>
+            <p>A modern, modular Flask application with a beautiful UI.</p>
+        </section>
+
+        <section class="features">
+            <div class="feature-card">
+                <h2>Modular Design</h2>
+                <p>Built with scalability and maintainability in mind.</p>
+            </div>
+            <div class="feature-card">
+                <h2>Modern UI</h2>
+                <p>Clean and responsive design for all devices.</p>
+            </div>
+            <div class="feature-card">
+                <h2>Easy to Extend</h2>
+                <p>Ready for additional features and functionality.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Flask App. All rights reserved.</p>
+    </footer>
+</body>
+</html> 
