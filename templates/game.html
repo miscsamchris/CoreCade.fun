@@ -6,19 +6,29 @@
         <script src="{{ url_for('static', filename='js/scenes/battle.js') }}"></script>
         <script >
             kaboom({
-                width: 1280,
-                height: 720,
-                scale: 0.7,
-                });
-                
-                setBackground(Color.fromHex("#36A6E0"));
-                
-                loadAssets("{{ url_for('static', filename='assets/characters.png')}}","{{ url_for('static', filename='assets/battleBackground.png')}}","{{ url_for('static', filename='assets/tiles.png')}}");
-                
-                scene("world", (worldState) => setWorld(worldState));
-                scene("battle", (worldState) => setBattle(worldState));
-                
-                go("world");
+                width: window.innerWidth,
+                height: window.innerHeight,
+                stretch: true,
+                letterbox: true
+            });
+            
+            setBackground(Color.fromHex("#36A6E0"));
+            
+            loadAssets("{{ url_for('static', filename='assets/characters.png')}}","{{ url_for('static', filename='assets/battleBackground.png')}}","{{ url_for('static', filename='assets/tiles.png')}}");
+            
+            scene("world", (worldState) => setWorld(worldState));
+            scene("battle", (worldState) => setBattle(worldState));
+            
+            go("world");
+
+            // Add event listener to handle window resizing
+            window.addEventListener('resize', () => {
+                const canvas = document.querySelector('canvas');
+                if (canvas) {
+                    canvas.style.width = '100%';
+                    canvas.style.height = '100%';
+                }
+            });
         </script>
         
     </body>
