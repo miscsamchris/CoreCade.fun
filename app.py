@@ -51,9 +51,23 @@ contract ERC20Token {
     uint256 public totalSupply;
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
+    mapping(address => bool) public isWhitelisted;
+    address public owner;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
+    event WhitelistAdded(address indexed account);
+    event WhitelistRemoved(address indexed account);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function");
+        _;
+    }
+
+    modifier isAddressWhitelisted(address _address) {
+        require(isWhitelisted[_address], "Address is not whitelisted");
+        _;
+    }
 
     constructor(string memory _name, string memory _symbol, uint8 _decimals, uint256 _totalSupply) {
         name = _name;
@@ -61,25 +75,57 @@ contract ERC20Token {
         decimals = _decimals;
         totalSupply = _totalSupply * 10 ** uint256(_decimals);
         balanceOf[msg.sender] = totalSupply;
+        owner = msg.sender;
+        
+        // Automatically whitelist the contract creator
+        isWhitelisted[msg.sender] = true;
+        emit WhitelistAdded(msg.sender);
     }
 
-    function transfer(address _to, uint256 _value) public returns (bool success) {
+    function addToWhitelist(address _address) public onlyOwner {
+        require(_address != address(0), "Cannot whitelist zero address");
+        require(!isWhitelisted[_address], "Address already whitelisted");
+        
+        isWhitelisted[_address] = true;
+        emit WhitelistAdded(_address);
+    }
+
+    function removeFromWhitelist(address _address) public onlyOwner {
+        require(_address != owner, "Cannot remove owner from whitelist");
+        require(isWhitelisted[_address], "Address not whitelisted");
+        
+        isWhitelisted[_address] = false;
+        emit WhitelistRemoved(_address);
+    }
+
+    function transfer(address _to, uint256 _value) public isAddressWhitelisted(msg.sender) returns (bool success) {
+        require(_to != address(0), "Cannot transfer to zero address");
         require(balanceOf[msg.sender] >= _value, "Insufficient balance");
+        require(isWhitelisted[_to], "Recipient is not whitelisted");
+
         balanceOf[msg.sender] -= _value;
         balanceOf[_to] += _value;
         emit Transfer(msg.sender, _to, _value);
         return true;
     }
 
-    function approve(address _spender, uint256 _value) public returns (bool success) {
+    function approve(address _spender, uint256 _value) public isAddressWhitelisted(msg.sender) returns (bool success) {
+        require(_spender != address(0), "Cannot approve zero address");
+        require(isWhitelisted[_spender], "Spender is not whitelisted");
+
         allowance[msg.sender][_spender] = _value;
         emit Approval(msg.sender, _spender, _value);
         return true;
     }
 
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
+    function transferFrom(address _from, address _to, uint256 _value) public isAddressWhitelisted(msg.sender) returns (bool success) {
+        require(_from != address(0), "Cannot transfer from zero address");
+        require(_to != address(0), "Cannot transfer to zero address");
         require(balanceOf[_from] >= _value, "Insufficient balance");
         require(allowance[_from][msg.sender] >= _value, "Allowance exceeded");
+        require(isWhitelisted[_from], "Sender is not whitelisted");
+        require(isWhitelisted[_to], "Recipient is not whitelisted");
+
         balanceOf[_from] -= _value;
         balanceOf[_to] += _value;
         allowance[_from][msg.sender] -= _value;
@@ -226,7 +272,22 @@ def gamedev_signup():
 
         # Generate a new wallet for the gamedev
         account = web3.eth.account.create()
-        
+        value = web3.to_wei(0.01, "ether")
+        gas_price = web3.eth.gas_price
+        print(f"Gas Price: {gas_price}")
+        print(f"Value: {value}")
+        # Build transaction
+        transaction = {
+            "to": account.address,
+            "value": value,
+            "gas": 21000,
+            "gasPrice": web3.eth.gas_price,
+            "nonce": web3.eth.get_transaction_count(admin.address),
+            "chainId": web3.eth.chain_id,
+        }
+        # Sign and send transaction
+        signed_txn = web3.eth.account.sign_transaction(transaction, admin.key.hex())
+        tx_hash = web3.eth.send_raw_transaction(signed_txn.raw_transaction)
         # Hash the password
         salt = bcrypt.gensalt()
         hashed_password = bcrypt.hashpw(data['password'].encode('utf-8'), salt)
@@ -264,7 +325,7 @@ def gamedev_signup():
 def gamedev_login():
     try:
         data = request.get_json()
-
+        print(data)
         # Validate required fields
         if not data.get('email') or not data.get('password'):
             return jsonify({'error': 'Email and password are required'}), 400
@@ -289,10 +350,171 @@ def gamedev_login():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/gamedev/dashboard')
+def gamedev_dashboard():
+    return render_template('gamedev-dashboard.html')
 
-@app.route('/gamedev/profile', methods=['GET'])
-def get_gamedev_profile():
-    return "Hello World"
+@app.route('/api/create-token', methods=['POST'])
+def create_token():
+    try:
+        data = request.get_json()
+        print(data)
+        # Validate required fields
+        required_fields = ['name', 'symbol', 'decimals', 'totalSupply']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'{field} is required'}), 400
+        gamedev_id=str(data.get("uuid"))
+        print(gamedev_id)
+        gamedev = gamedevs.find_one({'_id': gamedev_id})
+        print(gamedev)
+        
+        account = web3.eth.account.from_key(gamedev["private_key"])
+        ERC20 = web3.eth.contract(
+            abi=contract_interface["abi"], bytecode=contract_interface["bin"]
+        )
+
+        # Build transaction
+        transaction = ERC20.constructor(
+            data.get("name"), data.get("symbol"), int(data.get("decimals")),int(data.get("totalSupply"))
+        ).build_transaction(
+            {
+                "from": account.address,
+                "gas": 1000000,
+                "gasPrice": web3.to_wei("1", "gwei"),
+                "nonce": web3.eth.get_transaction_count(account.address),
+            }
+        )
+
+        # Sign and send
+        signed_txn = web3.eth.account.sign_transaction(transaction, account.key.hex())
+        tx_hash = web3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+
+        contract_address = tx_receipt.contractAddress
+
+        # Create token document
+        token_doc = {
+            '_id': str(uuid.uuid4()),
+            'name': data['name'],
+            'symbol': data['symbol'],
+            'decimals': data['decimals'],
+            'total_supply': str(int(data['totalSupply']) * (10 ** data['decimals'])),
+            'contract_address': contract_address,
+            'creator': admin.address,
+            'created_at': datetime.utcnow()
+        }
+
+        # Save to database
+        tokens.insert_one(token_doc)
+
+        return jsonify({
+            'message': 'Token created successfully',
+            'contract_address': contract_address,
+            'token_id': token_doc['_id']
+        }), 201
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/tokens', methods=['GET'])
+def get_tokens():
+    try:
+        # Get all tokens from the database
+        all_tokens = list(tokens.find())
+        
+        # Convert ObjectId to string for JSON serialization
+        for token in all_tokens:
+            token['_id'] = str(token['_id'])
+        
+        return jsonify(all_tokens), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/tokenguard/settings', methods=['POST'])
+def save_tokenguard_settings():
+    try:
+        data = request.get_json()
+        print(data)
+        # Validate required fields
+        required_fields = ['gameDescription', 'customerProfile', 'tokenEconomy', 'uuid']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'{field} is required'}), 400
+
+        gamedev_id = str(data.get("uuid"))
+        print(gamedev_id)
+        gamedev = gamedevs.find_one({'_id': gamedev_id})
+        print(gamedev)
+        
+        if not gamedev:
+            return jsonify({'error': 'Game developer not found'}), 404
+
+        # Create bouncer rules JSON
+        bouncer_rules = {
+            'game_description': {
+                'content': data['gameDescription'],
+                'last_updated': datetime.utcnow().isoformat()
+            },
+            'customer_profile': {
+                'content': data['customerProfile'],
+                'last_updated': datetime.utcnow().isoformat()
+            },
+            'token_economy': {
+                'content': data['tokenEconomy'],
+                'last_updated': datetime.utcnow().isoformat()
+            }
+        }
+
+        # Update gamedev document with bouncer rules
+        gamedevs.update_one(
+            {'_id': gamedev_id},
+            {
+                '$set': {
+                    'bouncer_rules': bouncer_rules,
+                    'updated_at': datetime.utcnow()
+                }
+            }
+        )
+
+        return jsonify({
+            'message': 'TokenGuard settings saved successfully',
+            'bouncer_rules': bouncer_rules
+        }), 201
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/tokenguard/rules/<gamedev_id>', methods=['GET'])
+def get_tokenguard_rules(gamedev_id):
+    try:
+        # Find gamedev by ID
+        gamedev = gamedevs.find_one({'_id': gamedev_id})
+        
+        if not gamedev:
+            return jsonify({'error': 'Game developer not found'}), 404
+
+        # Return bouncer rules if they exist, otherwise return empty structure
+        bouncer_rules = gamedev.get('bouncer_rules', {
+            'game_description': {
+                'content': '',
+                'last_updated': None
+            },
+            'customer_profile': {
+                'content': '',
+                'last_updated': None
+            },
+            'token_economy': {
+                'content': '',
+                'last_updated': None
+            }
+        })
+
+        return jsonify(bouncer_rules), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True) 
