@@ -196,6 +196,9 @@
                                 Send
                             </button>
                         </form>
+                        <button id="endBouncerBtn" class="mt-4 px-6 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors w-full">
+                            End Bouncer Test
+                        </button>
                     </div>
                 </div>
             </div>
@@ -483,62 +486,199 @@
         const chatInput = document.getElementById('chatInput');
         const chatMessages = document.getElementById('chatMessages');
 
-        tryBouncerBtn.addEventListener('click', () => {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            // Add initial system message
-            addMessage('system', 'Hello! I\'m your TokenGuard Bouncer. I can help you test and understand your security rules. What would you like to know?');
-        });
+        // Add these variables at the top of your script section
+        let currentSessionId = null;
+        let isBouncerActive = false;
 
-        closeModalBtn.addEventListener('click', () => {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            // Clear chat messages when closing
-            chatMessages.innerHTML = '';
-        });
+        // Update the tryBouncerBtn click handler
+        document.getElementById('tryBouncerBtn').addEventListener('click', async () => {
+            const storedToken = localStorage.getItem('token');
+            if (!storedToken) {
+                alert('Please log in first');
+                return;
+            }
 
-        // Close modal when clicking outside
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-                chatMessages.innerHTML = '';
+            const userData = JSON.parse(storedToken);
+            
+            try {
+                const response = await fetch('/start_bouncer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        uuid: userData.user_id
+                    })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    currentSessionId = result.session_id;
+                    isBouncerActive = true;
+                    
+                    // Show the modal
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                    
+                    // Add the initial system message
+                    addMessage('system', result.initial_response);
+                } else {
+                    alert('Error starting bouncer: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to start bouncer test. Please try again.');
             }
         });
 
-        // Handle chat form submission
-        chatForm.addEventListener('submit', async (e) => {
+        // Update the chat form submission handler
+        document.getElementById('chatForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            if (!currentSessionId) {
+                alert('No active bouncer session. Please start a new test.');
+                return;
+            }
+
             const message = chatInput.value.trim();
             if (!message) return;
 
-            // Add user message
+            // Add user message to chat
             addMessage('user', message);
             chatInput.value = '';
 
-            // Simulate AI response (replace with actual API call)
-            setTimeout(() => {
-                addMessage('system', 'I understand your question. Let me analyze your security rules and provide a response...');
-            }, 1000);
+            try {
+                const response = await fetch(`/chat/${currentSessionId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    addMessage('system', result.response);
+                } else {
+                    addMessage('system', 'Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('system', 'Failed to get response. Please try again.');
+            }
         });
 
-        // Function to add messages to chat
+        // Add end bouncer test functionality
+        document.getElementById('endBouncerBtn').addEventListener('click', async () => {
+            if (!currentSessionId) {
+                alert('No active bouncer session to end.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/end_bouncer_test/${currentSessionId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    addMessage('system', 'Bouncer test session ended.');
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                        modal.classList.remove('flex');
+                        chatMessages.innerHTML = '';
+                        currentSessionId = null;
+                        isBouncerActive = false;
+                    }, 2000);
+                } else {
+                    alert('Error ending session: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to end bouncer test. Please try again.');
+            }
+        });
+
+        // Update the close modal button to properly end the session
+        document.getElementById('closeModalBtn').addEventListener('click', async () => {
+            if (currentSessionId) {
+                if (confirm('Do you want to end the current bouncer session?')) {
+                    try {
+                        await fetch(`/end_bouncer_test/${currentSessionId}`, {
+                            method: 'POST'
+                        });
+                        currentSessionId = null;
+                        isBouncerActive = false;
+                    } catch (error) {
+                        console.error('Error ending session:', error);
+                    }
+                } else {
+                    return; // Don't close the modal if user cancels
+                }
+            }
+            
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            chatMessages.innerHTML = '';
+        });
+
+        // Update the modal click handler to check for active session
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                if (currentSessionId) {
+                    if (confirm('Do you want to end the current bouncer session?')) {
+                        fetch(`/end_bouncer_test/${currentSessionId}`, {
+                            method: 'POST'
+                        }).then(() => {
+                            currentSessionId = null;
+                            isBouncerActive = false;
+                            modal.classList.add('hidden');
+                            modal.classList.remove('flex');
+                            chatMessages.innerHTML = '';
+                        }).catch(error => {
+                            console.error('Error ending session:', error);
+                        });
+                    }
+                } else {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    chatMessages.innerHTML = '';
+                }
+            }
+        });
+
+        // Update the addMessage function to include timestamps and better styling
         function addMessage(type, content) {
             const messageDiv = document.createElement('div');
-            messageDiv.className = `flex ${type === 'user' ? 'justify-end' : 'justify-start'}`;
+            messageDiv.className = `flex ${type === 'user' ? 'justify-end' : 'justify-start'} items-start space-x-2`;
+            
+            const timestamp = new Date().toLocaleTimeString();
             
             const messageContent = document.createElement('div');
-            messageContent.className = `max-w-[80%] rounded-lg p-3 ${
+            messageContent.className = `max-w-[80%] rounded-lg p-4 ${
                 type === 'user' 
                     ? 'bg-blue-500 text-white' 
                     : 'bg-gray-700 text-gray-200'
             }`;
-            messageContent.textContent = content;
             
-            messageDiv.appendChild(messageContent);
+            const messageText = document.createElement('div');
+            messageText.className = 'text-sm';
+            messageText.textContent = content;
+            
+            const timeText = document.createElement('div');
+            timeText.className = 'text-xs text-gray-400 mt-1';
+            timeText.textContent = timestamp;
+            
+            messageContent.appendChild(messageText);
+            messageContent.appendChild(timeText);
+            
+            if (type === 'user') {
+                messageDiv.appendChild(messageContent);
+            } else {
+                messageDiv.appendChild(messageContent);
+            }
+            
             chatMessages.appendChild(messageDiv);
-            
-            // Scroll to bottom
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     </script>

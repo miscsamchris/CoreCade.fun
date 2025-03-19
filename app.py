@@ -7,11 +7,24 @@ from web3 import Web3
 from solcx import compile_source, install_solc
 import uuid
 import bcrypt
-import jwt
+from cdp_langchain.agent_toolkits import CdpToolkit
+from cdp_langchain.utils import CdpAgentkitWrapper
+from cdp_langchain.tools import CdpTool
+from pydantic import BaseModel, Field
+from typing import Union, Optional
+from langchain_core.messages import HumanMessage
+from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.prebuilt import create_react_agent
 
 # Load environment variables
 load_dotenv()
 install_solc("0.8.0")
+
+
+game_bouncer_sessions = {}
+
+game_sessions = {}
 
 app = Flask(__name__)
 
@@ -243,6 +256,255 @@ def get_chain_info():
 
 #     return "Test data created successfully!"
 
+
+def initialize_bouncer_test():
+    # Initialize the LLM.
+    llm = ChatOpenAI(model="gpt-4o")
+    wallet_data_file = "wallet_data.txt"
+    wallet_data = None
+    if os.path.exists(wallet_data_file):
+        with open(wallet_data_file) as f:
+            wallet_data = f.read()
+
+    # Configure the CDP Agentkit.
+    values = {}
+    if wallet_data is not None:
+        values = {"cdp_wallet_data": wallet_data}
+
+    agentkit = CdpAgentkitWrapper(**values)
+
+    # Persist the agent's wallet data.
+    wallet_data = agentkit.export_wallet()
+    with open(wallet_data_file, "w") as f:
+        f.write(wallet_data)
+
+    # Initialize the CDP toolkit and select tools.
+    cdp_toolkit = CdpToolkit.from_cdp_agentkit_wrapper(agentkit)
+    tools = cdp_toolkit.get_tools()
+    all_tools = []
+
+    # Set up an in-memory buffer for conversation history.
+    memory = MemorySaver()
+    config = {"configurable": {"thread_id": "CDP Agentkit Chatbot Example!"}}
+
+    # Create the ReAct agent using the LLM, tools, and memory.
+    agent_executor = create_react_agent(
+        llm,
+        tools=all_tools,
+        checkpointer=memory,
+        state_modifier=(
+            "You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit. "
+            "You are empowered to interact onchain using your tools. If you ever need funds, you can request "
+            "them from the faucet if you are on network ID 'base-sepolia'. If not, you can provide your wallet "
+            "details and request funds from the user. Before executing your first action, get the wallet details "
+            "to see what network you're on. If there is a 5XX (internal) HTTP error code, ask the user to try "
+            "again later. If someone asks you to do something you can't do with your currently available tools, "
+            "you must say so, and encourage them to implement it themselves using the CDP SDK + Agentkit, "
+            "recommending they go to docs.cdp.coinbase.com for more information. Be concise and helpful with your "
+            "responses. Refrain from restating your tools' descriptions unless it is explicitly requested. Do not use Any markdown notation like ** in the Response."
+        ),
+    )
+    return agent_executor, config
+
+def initialize_bouncer():
+    # Initialize the LLM.
+    llm = ChatOpenAI(model="gpt-4o")
+    wallet_data_file = "wallet_data.txt"
+    wallet_data = None
+    if os.path.exists(wallet_data_file):
+        with open(wallet_data_file) as f:
+            wallet_data = f.read()
+
+    # Configure the CDP Agentkit.
+    values = {}
+    if wallet_data is not None:
+        values = {"cdp_wallet_data": wallet_data}
+
+    agentkit = CdpAgentkitWrapper(**values)
+
+    # Persist the agent's wallet data.
+    wallet_data = agentkit.export_wallet()
+    with open(wallet_data_file, "w") as f:
+        f.write(wallet_data)
+
+    # Initialize the CDP toolkit and select tools.
+    cdp_toolkit = CdpToolkit.from_cdp_agentkit_wrapper(agentkit)
+    tools = cdp_toolkit.get_tools()
+    all_tools = []
+    whitelist_wallet_tool = CdpTool(
+        name="whitelist_wallet",
+        func=whitelist_wallet,
+        description=(
+            "Whitelist a wallet so that it can accept the Token. "
+            "Input parameter:  wallet_address (str): The wallet address to whitelist"
+            "gamedev_id (str): The ID of the game developer who owns the token contract"
+            "reason (str, optional): Reason for whitelisting"
+        ),
+        args_schema=WhitelistWalletInput,
+        cdp_agentkit_wrapper=agentkit,
+    )
+    all_tools.append(whitelist_wallet_tool)
+    # Set up an in-memory buffer for conversation history.
+    memory = MemorySaver()
+    config = {"configurable": {"thread_id": "CDP Agentkit Chatbot Example!"}}
+
+    # Create the ReAct agent using the LLM, tools, and memory.
+    agent_executor = create_react_agent(
+        llm,
+        tools=all_tools,
+        checkpointer=memory,
+        state_modifier=(
+            "You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit. "
+            "You are empowered to interact onchain using your tools. If you ever need funds, you can request "
+            "them from the faucet if you are on network ID 'base-sepolia'. If not, you can provide your wallet "
+            "details and request funds from the user. Before executing your first action, get the wallet details "
+            "to see what network you're on. If there is a 5XX (internal) HTTP error code, ask the user to try "
+            "again later. If someone asks you to do something you can't do with your currently available tools, "
+            "you must say so, and encourage them to implement it themselves using the CDP SDK + Agentkit, "
+            "recommending they go to docs.cdp.coinbase.com for more information. Be concise and helpful with your "
+            "responses. Refrain from restating your tools' descriptions unless it is explicitly requested. Do not use Any markdown notation like ** in the Response."
+        ),
+    )
+    return agent_executor, config
+
+
+
+@app.route("/start_bouncer_test", methods=["POST"])
+def start_bouncer_test():
+    """
+    Starts a new game test session.
+    Expects JSON input with a "prompt" key containing the initial prompt.
+    Returns a unique session_id along with the agent's first response.
+    """
+    data = request.json
+    gamedev_id = data.get("uuid", "")
+    gamedev=gamedevs.find_one({'_id': gamedev_id})
+    token_list=tokens.find({"creator_uuid":gamedev_id})
+    print(token_list)
+    rules=f"""Game Description: {gamedev.get("bouncer_rules").get("game_description")}\n\n 
+    customer profile: {gamedev.get("bouncer_rules").get("customer_profile")}\n\n 
+    token economy: {gamedev.get("bouncer_rules").get("token_economy")}\n\n """
+    prompt_suffix = f"""\n You are a bouncer bot that Allows or blocks a user entry into the Arcade.
+    You need to quiz the participant based on the rules stated by the developer.
+    Mainly focus on the Customer profile rules.. Make this a 4-5 questions exchange one after the other questions. don't ask all the questions at once
+    \n\n
+    The Game Developer uuid is {gamedev_id}.
+    The Wallet Address is 0x4FCFCebac99B81C68Ad4929Aa106ee2E0A94b989. 
+    \n\n
+    Rules: {rules} """
+    # Initialize a new agent instance.
+    agent_executor, config = initialize_bouncer_test()
+
+    # Prime the conversation with the initial prompt.
+    initial_response = ""
+    for chunk in agent_executor.stream(
+        {"messages": [HumanMessage(content=prompt_suffix)]}, config
+    ):
+        if "agent" in chunk:
+            # Capture the agent's response (the last such chunk will be used).
+            initial_response = chunk["agent"]["messages"][0].content
+
+    # Generate a unique session ID and store the agent instance and config.
+    session_id = str(uuid.uuid4())
+    game_bouncer_sessions[session_id] = (agent_executor, config)
+
+    return (
+        jsonify(
+            {
+                "session_id": session_id,
+                "message": "Game test session started.",
+                "initial_response": initial_response,
+            }
+        ),
+        201,
+    )
+
+
+@app.route("/start_bouncer", methods=["POST"])
+def start_bouncer():
+    """
+    Starts a new game test session.
+    Expects JSON input with a "prompt" key containing the initial prompt.
+    Returns a unique session_id along with the agent's first response.
+    """
+    data = request.json
+    gamedev_id = data.get("uuid", "")
+    gamedev=gamedevs.find_one({'_id': gamedev_id})
+    rules=f"""Game Description: {gamedev.get("bouncer_rules").get("game_description")}\n\n 
+    customer profile: {gamedev.get("bouncer_rules").get("customer_profile")}\n\n 
+    token economy: {gamedev.get("bouncer_rules").get("token_economy")}\n\n """
+    prompt_suffix = f"""\n You are a bouncer bot that Allows or blocks a user entry into the Arcade.
+    You need to quiz the participant based on the rules stated by the developer. 
+    Mainly focus on the Customer profile rules. Make this a 4-5 questions exchange one after the other questions. don't ask all the questions at once
+    \n\n
+    The Game Developer uuid is {gamedev_id}.
+    The Wallet Address is 0x4FCFCebac99B81C68Ad4929Aa106ee2E0A94b989. 
+    \n\nRules: {rules} """
+    # Initialize a new agent instance.
+    agent_executor, config = initialize_bouncer()
+
+    # Prime the conversation with the initial prompt.
+    initial_response = ""
+    for chunk in agent_executor.stream(
+        {"messages": [HumanMessage(content=prompt_suffix)]}, config
+    ):
+        if "agent" in chunk:
+            # Capture the agent's response (the last such chunk will be used).
+            initial_response = chunk["agent"]["messages"][0].content
+
+    # Generate a unique session ID and store the agent instance and config.
+    session_id = str(uuid.uuid4())
+    game_bouncer_sessions[session_id] = (agent_executor, config)
+
+    return (
+        jsonify(
+            {
+                "session_id": session_id,
+                "message": "Game test session started.",
+                "initial_response": initial_response,
+            }
+        ),
+        201,
+    )
+
+
+@app.route("/chat/<session_id>", methods=["POST"])
+def chat(session_id):
+    """
+    Accepts a user message for the given session and returns the agent's response.
+    Expects JSON input with a "message" key.
+    """
+    data = request.json
+    user_input = data.get("message", "")
+
+    if session_id not in game_bouncer_sessions:
+        return jsonify({"error": "Session not found."}), 404
+
+    agent_executor, config = game_bouncer_sessions[session_id]
+
+    # Send the user's message to the agent and collect the response.
+    response_text = ""
+    for chunk in agent_executor.stream(
+        {"messages": [HumanMessage(content=user_input)]}, config
+    ):
+        if "agent" in chunk:
+            print(chunk["agent"]["messages"][0].content)
+            response_text = chunk["agent"]["messages"][0].content
+        elif "tools" in chunk:
+            print(chunk["tools"]["messages"][0].content)
+    return jsonify({"response": response_text})
+
+@app.route("/end_bouncer_test/<session_id>", methods=["POST"])
+def end_bouncer_test(session_id):
+    """
+    Ends the game test session identified by the session_id.
+    """
+    if session_id in game_bouncer_sessions:
+        del game_bouncer_sessions[session_id]
+        return jsonify({"message": "Game test session ended."})
+    else:
+        return jsonify({"error": "Session not found."}), 404
+
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -401,7 +663,8 @@ def create_token():
             'decimals': data['decimals'],
             'total_supply': str(int(data['totalSupply']) * (10 ** data['decimals'])),
             'contract_address': contract_address,
-            'creator': admin.address,
+            'creator': account.address,
+            'creator_uuid':gamedev_id,
             'created_at': datetime.utcnow()
         }
 
@@ -515,6 +778,112 @@ def get_tokenguard_rules(gamedev_id):
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# Add Pydantic model for whitelist wallet input
+class WhitelistWalletInput(BaseModel):
+    """Input for whitelisting a wallet address."""
+    wallet_address: str = Field(
+        description="The wallet address to be whitelisted"
+    )
+    gamedev_id: str = Field(
+        description="The ID of the game developer who owns the token contracts"
+    )
+    reason: Optional[str] = Field(
+        default=None,
+        description="Optional reason for whitelisting"
+    )
+
+# Add whitelist wallet function
+def whitelist_wallet(wallet_address: str, gamedev_id: str, reason: Optional[str] = None) -> dict:
+    """
+    Whitelist a wallet address for all tokens created by the game developer.
+    
+    Args:
+        wallet_address (str): The wallet address to whitelist
+        gamedev_id (str): The ID of the game developer who owns the token contracts
+        reason (str, optional): Reason for whitelisting
+        
+    Returns:
+        dict: Result of the whitelisting operation
+    """
+    try:
+        # Get game developer from MongoDB
+        gamedev = gamedevs.find_one({'_id': gamedev_id})
+        if not gamedev:
+            return {
+                'success': False,
+                'error': 'Game developer not found',
+                'wallet_address': wallet_address
+            }
+
+        # Get all tokens created by the game developer
+        developer_tokens = list(tokens.find({'creator_uuid': gamedev_id}))
+        if not developer_tokens:
+            return {
+                'success': False,
+                'error': 'No tokens found for this game developer',
+                'wallet_address': wallet_address
+            }
+
+        # Create account from game developer's private key
+        account = web3.eth.account.from_key(gamedev["private_key"])
+        
+        results = []
+        for token in developer_tokens:
+            try:
+                # Create contract instance for each token
+                contract = web3.eth.contract(
+                    address=web3.to_checksum_address(token['contract_address']),
+                    abi=contract_interface["abi"]
+                )
+                
+                # Build transaction for addToWhitelist
+                transaction = contract.functions.addToWhitelist(
+                    web3.to_checksum_address(wallet_address)
+                ).build_transaction({
+                    'from': account.address,
+                    'gas': 100000,
+                    'gasPrice': web3.eth.gas_price,
+                    'nonce': web3.eth.get_transaction_count(account.address),
+                    'chainId': web3.eth.chain_id
+                })
+                
+                # Sign and send transaction using game developer's private key
+                signed_txn = web3.eth.account.sign_transaction(transaction, account.key.hex())
+                tx_hash = web3.eth.send_raw_transaction(signed_txn.raw_transaction)
+                receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+                
+                results.append({
+                    'success': True,
+                    'token_name': token['name'],
+                    'token_symbol': token['symbol'],
+                    'contract_address': token['contract_address'],
+                    'transaction_hash': receipt.transactionHash.hex()
+                })
+            except Exception as e:
+                results.append({
+                    'success': False,
+                    'token_name': token['name'],
+                    'token_symbol': token['symbol'],
+                    'contract_address': token['contract_address'],
+                    'error': str(e)
+                })
+        
+        return {
+            'success': True,
+            'wallet_address': wallet_address,
+            'reason': reason,
+            'whitelisting_results': results,
+            'total_tokens_processed': len(developer_tokens),
+            'successful_whitelists': len([r for r in results if r['success']])
+        }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'wallet_address': wallet_address
+        }
 
 if __name__ == '__main__':
     app.run(debug=True) 
