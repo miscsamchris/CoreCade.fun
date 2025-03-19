@@ -1,12 +1,14 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, jsonify
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
 from datetime import datetime, timedelta
 from web3 import Web3
 from solcx import compile_source, install_solc
-
 import uuid
+import bcrypt
+import jwt
+
 # Load environment variables
 load_dotenv()
 install_solc("0.8.0")
@@ -34,7 +36,9 @@ private_key = os.getenv("PRIVATE_KEY", "PrivateKey")  # Store securely!
 admin = web3.eth.account.from_key(private_key)
 web3.eth.default_account = admin.address
 
-
+# JWT Configuration
+JWT_SECRET = os.getenv('JWT_SECRET', 'your-secret-key')  # In production, use a secure secret key
+JWT_EXPIRATION = timedelta(days=1)
 
 ERC20_SOURCE = """
 // SPDX-License-Identifier: MIT
@@ -84,7 +88,6 @@ contract ERC20Token {
     }
 }
 """
-
 
 compiled_sol = compile_source(ERC20_SOURCE, solc_version="0.8.0")
 contract_interface = compiled_sol[next(iter(compiled_sol))]
@@ -202,6 +205,94 @@ def home():
 def test_game():
     return render_template('game.html')
 
+@app.route('/developers')
+def developers_home():
+    return render_template('gamedev-home.html')
+
+@app.route('/gamedev/signup', methods=['POST'])
+def gamedev_signup():
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['email', 'company_name', 'password']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'{field} is required'}), 400
+
+        # Check if email already exists
+        if gamedevs.find_one({'email': data['email']}):
+            return jsonify({'error': 'Email already registered'}), 409
+
+        # Generate a new wallet for the gamedev
+        account = web3.eth.account.create()
+        
+        # Hash the password
+        salt = bcrypt.gensalt()
+        hashed_password = bcrypt.hashpw(data['password'].encode('utf-8'), salt)
+
+        # Create gamedev document
+        gamedev = {
+            '_id': str(uuid.uuid4()),
+            'email': data['email'],
+            'company_name': data['company_name'],
+            'password': hashed_password,
+            'website': data.get('website', ''),
+            'description': data.get('description', ''),
+            'wallet_address': account.address,
+            'private_key': account.key.hex(),  # In production, encrypt this
+            'verified': False,
+            'total_revenue': 0.0,
+            'active_status': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        }
+
+        # Insert into database
+        gamedevs.insert_one(gamedev)
+
+        return jsonify({
+            'message': 'Game developer registered successfully',
+            'uuid': gamedev['_id'],
+            'wallet_adress': str(account.address)
+        }), 201
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/gamedev/login', methods=['POST'])
+def gamedev_login():
+    try:
+        data = request.get_json()
+
+        # Validate required fields
+        if not data.get('email') or not data.get('password'):
+            return jsonify({'error': 'Email and password are required'}), 400
+
+        # Find gamedev by email
+        gamedev = gamedevs.find_one({'email': data['email']})
+        if not gamedev:
+            return jsonify({'error': 'Invalid email or password'}), 401
+
+        # Verify password
+        if not bcrypt.checkpw(data['password'].encode('utf-8'), gamedev['password']):
+            return jsonify({'error': 'Invalid email or password'}), 401
+
+        return jsonify({
+            'message': 'Login successful',
+            'user_id': gamedev['_id'],
+            'email': gamedev['email'],
+            'uuid': gamedev['_id'],
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
+@app.route('/gamedev/profile', methods=['GET'])
+def get_gamedev_profile():
+    return "Hello World"
 
 if __name__ == '__main__':
     app.run(debug=True) 
