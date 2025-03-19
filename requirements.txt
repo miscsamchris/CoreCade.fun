@@ -3,3 +3,4 @@ Werkzeug
 pymongo
 python-dotenv
 web3
+py-solc-x
