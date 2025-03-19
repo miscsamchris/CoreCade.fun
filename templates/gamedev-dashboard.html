@@ -203,6 +203,42 @@
                 </div>
             </div>
 
+            <!-- Gameplay Test Modal -->
+            <div id="gameplayModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+                <div class="bg-gray-800 rounded-lg w-full max-w-4xl mx-4 h-[80vh] flex flex-col">
+                    <!-- Modal Header -->
+                    <div class="p-4 border-b border-gray-700 flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-blue-400">Game Test <span id="gameTestTitle"></span></h3>
+                        <button id="closeGameplayModalBtn" class="text-gray-400 hover:text-white">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Game Messages -->
+                    <div id="gameMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
+                        <!-- Messages will be added here -->
+                    </div>
+
+                    <!-- Game Input -->
+                    <div class="p-4 border-t border-gray-700">
+                        <form id="gameTestForm" class="flex space-x-4">
+                            <input type="text" id="gameInput" 
+                                class="flex-1 px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-white"
+                                placeholder="Type your message..."
+                            >
+                            <button type="submit" class="px-6 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors">
+                                Send
+                            </button>
+                        </form>
+                        <button id="endGameTestBtn" class="mt-4 px-6 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors w-full">
+                            End Game Test
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Tokens Tab -->
             <div class="tab-content" id="tokens">
                 <div class="card p-6 mb-8">
@@ -259,9 +295,94 @@
 
             <!-- Games Tab -->
             <div class="tab-content" id="games">
+                <div class="card p-6 mb-8">
+                    <h2 class="text-2xl font-bold mb-6 game-font text-blue-400">Create New Game</h2>
+                    <form class="game-form space-y-6" id="gameForm">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Game Title</label>
+                                <input type="text" class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="gameTitle" required>
+                                <p class="text-sm text-gray-400 mt-1">The name of your game</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Game Type</label>
+                                <select class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="gameType" required>
+                                    <option value="">Select a game type</option>
+                                    <option value="1">Text Adventure</option>
+                                    <option value="2">Strategy Game</option>
+                                    <option value="3">Puzzle Game</option>
+                                    <option value="4">RPG</option>
+                                    <option value="5">Other</option>
+                                </select>
+                                <p class="text-sm text-gray-400 mt-1">The type of game you're creating</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Cost in CORE</label>
+                                <input type="number" step="0.01" min="0" class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="costInCore" required>
+                                <p class="text-sm text-gray-400 mt-1">Cost to play in CORE tokens</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Token Reward</label>
+                                <input type="number" min="0" class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="tokenReward" required>
+                                <p class="text-sm text-gray-400 mt-1">Amount of game tokens awarded to winners</p>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium mb-2">Game Token for Rewards</label>
+                                <select class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="gameToken" required>
+                                    <option value="">Select a token</option>
+                                    <!-- Token options will be loaded dynamically -->
+                                </select>
+                                <p class="text-sm text-gray-400 mt-1">The token used for rewarding players in this game</p>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium mb-2">Game Description</label>
+                                <textarea class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-32" id="gameDescription" required></textarea>
+                                <p class="text-sm text-gray-400 mt-1">A detailed description of your game</p>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium mb-2">Game Prompt</label>
+                                <textarea class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-32" id="gamePrompt" required></textarea>
+                                <p class="text-sm text-gray-400 mt-1">The prompt that will be presented to players</p>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium mb-2">Winning Condition</label>
+                                <textarea class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="winningCondition" required></textarea>
+                                <p class="text-sm text-gray-400 mt-1">What players need to do to win the game</p>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium mb-2">Game Image</label>
+                                <input type="file" class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="gameImage">
+                                <p class="text-sm text-gray-400 mt-1">An image for your game (optional)</p>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary px-6 py-3 rounded-lg font-semibold text-white w-full md:w-auto">
+                            Create Game
+                        </button>
+                    </form>
+                </div>
+
                 <div class="card p-6">
-                    <h2 class="text-2xl font-bold mb-6 game-font">My Games</h2>
-                    <p class="text-gray-400">No games created yet. Start by creating a new game!</p>
+                    <h2 class="text-2xl font-bold mb-6 game-font text-blue-400">My Games</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-left border-b border-gray-700">
+                                    <th class="pb-4">Title</th>
+                                    <th class="pb-4">Type</th>
+                                    <th class="pb-4">Cost</th>
+                                    <th class="pb-4">Reward</th>
+                                    <th class="pb-4">Token</th>
+                                    <th class="pb-4">Players</th>
+                                    <th class="pb-4">Status</th>
+                                    <th class="pb-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gamesList" class="divide-y divide-gray-700">
+                                <!-- Games will be populated here via JavaScript -->
+                            </tbody>
+                        </table>
+                        <div id="noGamesMessage" class="text-center py-6 text-gray-400">No games created yet. Start by creating a new game!</div>
+                    </div>
                 </div>
             </div>
 
@@ -385,13 +506,88 @@
             }
         });
 
+        // Game form submission
+        document.getElementById('gameForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const storedToken = localStorage.getItem('token');
+            if (!storedToken) {
+                alert('Please log in to create a game');
+                return;
+            }
+            
+            const userData = JSON.parse(storedToken);
+            
+            // Validate that a token is selected
+            const selectedToken = document.getElementById('gameToken').value;
+            if (!selectedToken) {
+                alert('Please select a token for rewards');
+                return;
+            }
+            
+            // Create FormData to handle file upload
+            const formData = new FormData();
+            
+            // Add form fields to FormData
+            formData.append('title', document.getElementById('gameTitle').value);
+            formData.append('game_type', document.getElementById('gameType').value);
+            formData.append('cost_in_core', document.getElementById('costInCore').value);
+            formData.append('reward_in_tokens', document.getElementById('tokenReward').value);
+            formData.append('token_id', selectedToken);
+            formData.append('description', document.getElementById('gameDescription').value);
+            formData.append('prompt', document.getElementById('gamePrompt').value);
+            formData.append('winning_condition', document.getElementById('winningCondition').value);
+            formData.append('uuid', userData.user_id);
+            
+            // Add image file if provided
+            const imageFile = document.getElementById('gameImage').files[0];
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+
+            try {
+                const submitButton = document.querySelector('#gameForm button[type="submit"]');
+                submitButton.disabled = true;
+                submitButton.textContent = 'Creating...';
+                
+                const response = await fetch('/api/create-game', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert('Game created successfully!');
+                    document.getElementById('gameForm').reset();
+                    loadGames();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+                
+                submitButton.disabled = false;
+                submitButton.textContent = 'Create Game';
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to create game. Please try again.');
+                document.querySelector('#gameForm button[type="submit"]').disabled = false;
+                document.querySelector('#gameForm button[type="submit"]').textContent = 'Create Game';
+            }
+        });
+
         // Load tokens
         async function loadTokens() {
             try {
+                const storedToken = localStorage.getItem('token');
+                const userData = JSON.parse(storedToken);
+                
                 const response = await fetch('/api/tokens');
                 const tokens = await response.json();
                 const tokensList = document.getElementById('tokensList');
-                tokensList.innerHTML = tokens.map(token => `
+                
+                // Filter tokens for the current developer
+                const devTokens = tokens.filter(token => token.creator_uuid === userData.user_id);
+                
+                tokensList.innerHTML = devTokens.map(token => `
                     <tr class="py-4">
                         <td>${token.name}</td>
                         <td>${token.symbol}</td>
@@ -403,14 +599,228 @@
                         </td>
                     </tr>
                 `).join('');
+                
+                // Also populate the token dropdown in the game form
+                const gameTokenSelect = document.getElementById('gameToken');
+                gameTokenSelect.innerHTML = '<option value="">Select a token</option>' + 
+                    devTokens.map(token => `<option value="${token._id}">${token.name} (${token.symbol})</option>`).join('');
+                
+                // If no tokens are available, show a message and disable the game creation form
+                if (devTokens.length === 0) {
+                    if (document.getElementById('gameForm')) {
+                        const tokenWarning = document.createElement('div');
+                        tokenWarning.id = 'tokenWarning';
+                        tokenWarning.className = 'text-center py-4 bg-yellow-500/20 text-yellow-400 rounded mb-4';
+                        tokenWarning.innerHTML = `
+                            <p class="mb-2">You need to create at least one token before creating a game.</p>
+                            <button type="button" id="createTokenBtn" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors">
+                                Create Token First
+                            </button>
+                        `;
+                        
+                        const existingWarning = document.getElementById('tokenWarning');
+                        if (!existingWarning) {
+                            document.getElementById('gameForm').prepend(tokenWarning);
+                            
+                            // Add click handler to the Create Token button
+                            document.getElementById('createTokenBtn').addEventListener('click', () => {
+                                // Navigate to the tokens tab
+                                document.querySelector('.nav-link[data-tab="tokens"]').click();
+                            });
+                        }
+                        
+                        // Disable form inputs
+                        document.querySelectorAll('#gameForm input, #gameForm select, #gameForm textarea').forEach(input => {
+                            input.disabled = true;
+                        });
+                        
+                        // Disable form submission
+                        document.querySelector('#gameForm button[type="submit"]').disabled = true;
+                        document.querySelector('#gameForm button[type="submit"]').classList.add('opacity-50', 'cursor-not-allowed');
+                    }
+                } else {
+                    // Enable form submission
+                    const existingWarning = document.getElementById('tokenWarning');
+                    if (existingWarning) {
+                        existingWarning.remove();
+                    }
+                    
+                    // Enable form inputs
+                    document.querySelectorAll('#gameForm input, #gameForm select, #gameForm textarea').forEach(input => {
+                        input.disabled = false;
+                    });
+                    
+                    if (document.querySelector('#gameForm button[type="submit"]')) {
+                        document.querySelector('#gameForm button[type="submit"]').disabled = false;
+                        document.querySelector('#gameForm button[type="submit"]').classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                }
             } catch (error) {
                 console.error('Error loading tokens:', error);
+            }
+        }
+
+        // Load games
+        async function loadGames() {
+            try {
+                const storedToken = localStorage.getItem('token');
+                const userData = JSON.parse(storedToken);
+                
+                const response = await fetch(`/api/games?developer_id=${userData.user_id}`);
+                const games = await response.json();
+                
+                const gamesList = document.getElementById('gamesList');
+                const noGamesMessage = document.getElementById('noGamesMessage');
+                
+                if (games.length > 0) {
+                    noGamesMessage.style.display = 'none';
+                    gamesList.innerHTML = games.map(game => `
+                        <tr class="py-4">
+                            <td>${game.title}</td>
+                            <td>${getGameTypeName(game.game_type)}</td>
+                            <td>${game.cost_in_core} CORE</td>
+                            <td>${game.reward_in_tokens}</td>
+                            <td>${game.token_name} (${game.token_symbol})</td>
+                            <td>${game.players || 0}</td>
+                            <td>
+                                <span class="px-2 py-1 rounded-full text-xs ${
+                                    game.status === 'active' ? 'bg-green-500/20 text-green-400' : 
+                                    game.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' : 
+                                    game.status === 'released' ? 'bg-purple-500/20 text-purple-400' :
+                                    'bg-red-500/20 text-red-400'
+                                }">${game.status || 'inactive'}</span>
+                            </td>
+                            <td>
+                                <button class="btn-primary px-3 py-1 rounded text-sm mr-2" data-game-id="${game._id}">Edit</button>
+                                ${game.status !== 'released' ? `
+                                <button class="px-3 py-1 rounded text-sm ${
+                                    game.status === 'active' ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30' : 
+                                    'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                                }" data-game-id="${game._id}" data-action="${game.status === 'active' ? 'pause' : 'activate'}">
+                                    ${game.status === 'active' ? 'Pause' : 'Activate'}
+                                </button>
+                                ${game.status === 'active' ? `
+                                <button class="px-3 py-1 rounded text-sm bg-purple-500/20 text-purple-400 hover:bg-purple-500/30" data-game-id="${game._id}" data-action="release">
+                                    Release
+                                </button>
+                                ` : ''}
+                                ` : ''}
+                                <button class="px-3 py-1 rounded text-sm bg-blue-500/20 text-blue-400 hover:bg-blue-500/30" data-game-id="${game._id}" data-action="test-gameplay">
+                                    Test Gameplay
+                                </button>
+                                <button class="px-3 py-1 rounded text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30" data-game-id="${game._id}" data-action="delete">Delete</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                    
+                    // Add event listeners to the action buttons
+                    document.querySelectorAll('[data-game-id]').forEach(button => {
+                        button.addEventListener('click', handleGameAction);
+                    });
+                } else {
+                    noGamesMessage.style.display = 'block';
+                    gamesList.innerHTML = '';
+                }
+            } catch (error) {
+                console.error('Error loading games:', error);
+            }
+        }
+
+        // Helper function to get game type name from ID
+        function getGameTypeName(typeId) {
+            const gameTypes = {
+                1: 'Text Adventure',
+                2: 'Strategy Game',
+                3: 'Puzzle Game',
+                4: 'RPG',
+                5: 'Other'
+            };
+            return gameTypes[typeId] || 'Unknown';
+        }
+        
+        // Handle game actions (edit, activate/pause, delete)
+        async function handleGameAction(e) {
+            const gameId = e.target.getAttribute('data-game-id');
+            const action = e.target.getAttribute('data-action');
+            
+            if (!gameId) return;
+            
+            if (action === 'delete') {
+                if (!confirm('Are you sure you want to delete this game?')) return;
+                
+                try {
+                    const response = await fetch(`/api/games/${gameId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        alert('Game deleted successfully!');
+                        loadGames();
+                    } else {
+                        const result = await response.json();
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Failed to delete game. Please try again.');
+                }
+            } else if (action === 'activate' || action === 'pause') {
+                try {
+                    const response = await fetch(`/api/games/${gameId}/status`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            status: action === 'activate' ? 'active' : 'paused'
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        alert(`Game ${action === 'activate' ? 'activated' : 'paused'} successfully!`);
+                        loadGames();
+                    } else {
+                        const result = await response.json();
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert(`Failed to ${action} game. Please try again.`);
+                }
+            } else if (action === 'release') {
+                if (!confirm('Are you sure you want to release this game to production?')) return;
+                
+                try {
+                    const response = await fetch(`/api/games/${gameId}/release`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        alert('Game released to production successfully!');
+                        loadGames();
+                    } else {
+                        const result = await response.json();
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Failed to release game. Please try again.');
+                }
+            } else if (action === 'test-gameplay') {
+                startGameTest(gameId);
+            } else {
+                // Handle edit action - could open a modal or redirect to an edit page
+                alert('Edit functionality coming soon!');
             }
         }
 
         // Load tokens when page loads
         document.addEventListener('DOMContentLoaded', () => {
             loadTokens();
+            loadGames();
             loadBouncerRules();
         });
 
@@ -672,14 +1082,226 @@
             messageContent.appendChild(messageText);
             messageContent.appendChild(timeText);
             
-            if (type === 'user') {
-                messageDiv.appendChild(messageContent);
-            } else {
-                messageDiv.appendChild(messageContent);
-            }
+            messageDiv.appendChild(messageContent);
             
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Game Test Modal Functionality
+        const gameplayModal = document.getElementById('gameplayModal');
+        const closeGameplayModalBtn = document.getElementById('closeGameplayModalBtn');
+        const gameTestForm = document.getElementById('gameTestForm');
+        const gameInput = document.getElementById('gameInput');
+        const gameMessages = document.getElementById('gameMessages');
+        const gameTestTitle = document.getElementById('gameTestTitle');
+        const endGameTestBtn = document.getElementById('endGameTestBtn');
+
+        let currentGameId = null;
+        let currentGameSessionId = null;
+        let isGameActive = false;
+
+        // Function to start a game test
+        async function startGameTest(gameId) {
+            const storedToken = localStorage.getItem('token');
+            if (!storedToken) {
+                alert('Please log in first');
+                return;
+            }
+
+            const userData = JSON.parse(storedToken);
+            
+            try {
+                // First, get the game details to show the title
+                const gameResponse = await fetch(`/api/games/${gameId}`);
+                const game = await gameResponse.json();
+                if (!gameResponse.ok) {
+                    throw new Error(game.error || 'Failed to fetch game details');
+                }
+                
+                gameTestTitle.textContent = ` - ${game.title}`;
+                
+                // Start the game test session
+                const response = await fetch('/start_game_test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        game_id: gameId,
+                        user_uuid: userData.user_id
+                    })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    currentGameId = gameId;
+                    currentGameSessionId = result.session_id;
+                    isGameActive = true;
+                    
+                    // Show the modal
+                    gameplayModal.classList.remove('hidden');
+                    gameplayModal.classList.add('flex');
+                    
+                    // Add the initial system message
+                    addGameMessage('system', result.initial_response);
+                } else {
+                    alert('Error starting game test: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to start game test. Please try again.');
+            }
+        }
+
+        // Game form submission handler
+        gameTestForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!currentGameSessionId) {
+                alert('No active game session. Please start a new test.');
+                return;
+            }
+
+            const message = gameInput.value.trim();
+            if (!message) return;
+
+            // Add user message to chat
+            addGameMessage('user', message);
+            gameInput.value = '';
+
+            try {
+                const response = await fetch(`/chat_game/${currentGameSessionId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    addGameMessage('system', result.response);
+                } else {
+                    addGameMessage('system', 'Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                addGameMessage('system', 'Failed to get response. Please try again.');
+            }
+        });
+
+        // End game test functionality
+        endGameTestBtn.addEventListener('click', async () => {
+            if (!currentGameSessionId) {
+                alert('No active game session to end.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/end_game_test/${currentGameSessionId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    addGameMessage('system', 'Game test session ended.');
+                    setTimeout(() => {
+                        gameplayModal.classList.add('hidden');
+                        gameplayModal.classList.remove('flex');
+                        gameMessages.innerHTML = '';
+                        currentGameSessionId = null;
+                        currentGameId = null;
+                        isGameActive = false;
+                    }, 2000);
+                } else {
+                    alert('Error ending session: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to end game test. Please try again.');
+            }
+        });
+
+        // Close game modal button handler
+        closeGameplayModalBtn.addEventListener('click', async () => {
+            if (currentGameSessionId) {
+                if (confirm('Do you want to end the current game session?')) {
+                    try {
+                        await fetch(`/end_game_test/${currentGameSessionId}`, {
+                            method: 'POST'
+                        });
+                        currentGameSessionId = null;
+                        currentGameId = null;
+                        isGameActive = false;
+                    } catch (error) {
+                        console.error('Error ending game session:', error);
+                    }
+                } else {
+                    return; // Don't close the modal if user cancels
+                }
+            }
+            
+            gameplayModal.classList.add('hidden');
+            gameplayModal.classList.remove('flex');
+            gameMessages.innerHTML = '';
+        });
+
+        // Game modal click handler
+        gameplayModal.addEventListener('click', (e) => {
+            if (e.target === gameplayModal) {
+                if (currentGameSessionId) {
+                    if (confirm('Do you want to end the current game session?')) {
+                        fetch(`/end_game_test/${currentGameSessionId}`, {
+                            method: 'POST'
+                        }).then(() => {
+                            currentGameSessionId = null;
+                            currentGameId = null;
+                            isGameActive = false;
+                            gameplayModal.classList.add('hidden');
+                            gameplayModal.classList.remove('flex');
+                            gameMessages.innerHTML = '';
+                        }).catch(error => {
+                            console.error('Error ending game session:', error);
+                        });
+                    }
+                } else {
+                    gameplayModal.classList.add('hidden');
+                    gameplayModal.classList.remove('flex');
+                    gameMessages.innerHTML = '';
+                }
+            }
+        });
+
+        // Function to add a message to the game chat
+        function addGameMessage(type, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${type === 'user' ? 'justify-end' : 'justify-start'} items-start space-x-2`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = `max-w-[80%] rounded-lg p-4 ${
+                type === 'user' 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-purple-700 text-gray-200'
+            }`;
+            
+            const messageText = document.createElement('div');
+            messageText.className = 'text-sm';
+            messageText.textContent = content;
+            
+            const timeText = document.createElement('div');
+            timeText.className = 'text-xs text-gray-400 mt-1';
+            timeText.textContent = timestamp;
+            
+            messageContent.appendChild(messageText);
+            messageContent.appendChild(timeText);
+            
+            messageDiv.appendChild(messageContent);
+            
+            gameMessages.appendChild(messageDiv);
+            gameMessages.scrollTop = gameMessages.scrollHeight;
         }
     </script>
 </body>
