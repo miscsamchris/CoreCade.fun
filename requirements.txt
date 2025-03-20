@@ -4,3 +4,9 @@ pymongo
 python-dotenv
 web3
 py-solc-x
+pydantic
+cdp-langchain
+langchain-core
+langchain-openai
+langgraph
+gunicorn
