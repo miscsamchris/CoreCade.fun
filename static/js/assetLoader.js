@@ -54,12 +54,14 @@ function loadAssets(characters,background,tiles) {
           "tree-b": 12,
           "grass-water": 20,
           "sand-1": 6,
+          "door-l":40,
           "ground-l": 41,
           "ground-m": 42,
           "ground-r": 43,
           "rock-water": 60,
         },
       },
+      door:{x: 0, y: 80, width: 16, height: 16 }
     });
   }
   

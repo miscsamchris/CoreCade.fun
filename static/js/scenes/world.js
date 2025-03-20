@@ -7,22 +7,17 @@ function setWorld(worldState) {
     const map = [
       addLevel(
         [
-          "                                  ",
-          " cdddddddddddddddddddddddddde    ",
-          " 300000000000000000000000002     ",
-          " 300000000000000000000000002     ",
-          " 300000000000000000000000002     ",
-          " 300300000088890000000000002     ",
-          " 300300000244450000000000002     ",
-          " 300a88888977770000000000002     ",
-          " 300644444577770000000000002     ",
-          " 300000000000000000000000002     ",
-          " 300000000211110000000000002     ",
-          " 30000000020000000000000002      ",
-          " 11111111110000000000000002      ",
-          "      b    0000000000000002      ",
-          "     b      b  0000000000002     ",
-          " b             b   11111111      ",
+          "                            ",
+          " cddddddddddddddddddddddddde",
+          " 300000000000000000000000002",
+          " 300000000000000000000000002",
+          " 300000000000000000000000002",
+          " 307777777777777777777777702",
+          " 307777777777777777777777702",
+          " 300000000000000000000000002",
+          " 300000000000000000000000002",
+          " 300000000000000000000000002",
+          " 111111111111111111111111111",
         ],
         {
           tileWidth: 16,
@@ -46,52 +41,20 @@ function setWorld(worldState) {
           },
         }
       ),
+
       addLevel(
         [
-          "      12          12    12       ",
-          "      34          34    34       ",
-          " 000    00  12  000  00   12    ",
-          " 00   00    34  00   00   34    ",
-          " 0    0         0    0          ",
-          "      0  0          0  0        ",
-          "           5         5           ",
-          "           6         6           ",
-          "     5           5               ",
-          "     6   0       6   0          ",
-          "                                 ",
-          "                                 ",
-          "                                 ",
-        ],
-        {
-          tileWidth: 16,
-          tileHeight: 16,
-          tiles: {
-            0: () => makeTile(),
-            1: () => makeTile("bigtree-pt1"),
-            2: () => makeTile("bigtree-pt2"),
-            3: () => makeTile("bigtree-pt3"),
-            4: () => makeTile("bigtree-pt4"),
-            5: () => makeTile("tree-t"),
-            6: () => makeTile("tree-b"),
-          },
-        }
-      ),
-      addLevel(
-        [
-          " 000000000000000000000000000   ",
-          "0     11       0      11     0 ",
-          "0           11 0          11 0 ",
-          "0           11 0             0 ",
-          "0              0             0 ",
-          "0   2          0    2        0 ",
-          "0   2      3333 0   2    33330",
-          "0   2      0        2    0   0",
-          "0   3333333         333333   0",
-          "0    0               0       0",
-          "0          0000 0         0000",
-          "0          0    0         0   ",
-          " 0000000000     00000000000   ",
-          "                              ",
+          "00000000000000000000000000000",
+          "0                           0",
+          "0                           0",
+          "0                           0",
+          "0                           0",
+          "0                           0",
+          "0                           0",
+          "0                           0",
+          "0                           0",
+          "0                           0",
+          "00000000000000000000000000000",
         ],
         {
           tileWidth: 16,
@@ -133,58 +96,9 @@ function setWorld(worldState) {
       }
     }
   
-    add([
-      sprite("mini-mons"),
-      area(),
-      body({ isStatic: true }),
-      pos(100, 700),
-      scale(4),
-      "cat",
-    ]);
-  
-    const spiderMon = add([
-      sprite("mini-mons"),
-      area(),
-      body({ isStatic: true }),
-      pos(400, 300),
-      scale(4),
-      "spider",
-    ]);
-    spiderMon.play("spider");
-    spiderMon.flipX = true;
-  
-    const centipedeMon = add([
-      sprite("mini-mons"),
-      area(),
-      body({ isStatic: true }),
-      pos(100, 100),
-      scale(4),
-      "centipede",
-    ]);
-    centipedeMon.play("centipede");
-  
-    const grassMon = add([
-      sprite("mini-mons"),
-      area(),
-      body({ isStatic: true }),
-      pos(900, 570),
-      scale(4),
-      "grass",
-    ]);
-    grassMon.play("grass");
-  
-    add([
-      sprite("npc"),
-      scale(4),
-      pos(600, 700),
-      area(),
-      body({ isStatic: true }),
-      "npc",
-    ]);
-  
     const player = add([
       sprite("player-down"),
-      pos(500, 700),
+      pos(100,350),
       scale(4),
       area(),
       body(),
@@ -193,6 +107,14 @@ function setWorld(worldState) {
         speed: 300,
         isInDialogue: false,
       },
+    ]);
+      add([
+      sprite("door"),
+      scale(4),
+      pos(400, 200),
+      area(),
+      body({ isStatic: true }),
+      "door",
     ]);
   
     let tick = 0;
@@ -266,7 +188,220 @@ function setWorld(worldState) {
     for (const faintedMon of worldState.faintedMons) {
       destroy(get(faintedMon)[0]);
     }
+    let sessionId = null; // Store the session ID for ongoing chat
+
+    function openChatModal(initialMessage, session) {
+      player.isInDialogue = true;
+      let inputText = "";
+      let messages = [`[0-0] Bouncer Bot: ${initialMessage}`];
   
+      sessionId = session; // Store session ID
+  
+      const modalWidth = window.innerWidth * 0.9;
+      const modalHeight = window.innerHeight * 0.9;
+  
+      const modalContainer = add([fixed()]);
+      const modal = modalContainer.add([
+          rect(modalWidth, modalHeight),
+          outline(5),
+          pos((window.innerWidth - modalWidth) / 2, (window.innerHeight - modalHeight) / 2),
+          color(220, 220, 220),
+          fixed(),
+      ]);
+  
+      const chatAreaHeight = modalHeight * 0.75;
+      const inputAreaHeight = modalHeight * 0.15;
+  
+      const chatArea = modal.add([
+          rect(modalWidth - 20, chatAreaHeight),
+          color(255, 255, 255),
+          pos(10, 10),
+          area(),
+          fixed(),
+      ]);
+  
+      // 🟢 Reduce text size to fit more messages
+      const messagesDisplay = chatArea.add([
+          text("", {
+              size: 18, // Reduced from 28 to 18px
+              width: modalWidth - 40,
+              lineSpacing: 5,
+          }),
+          color(10, 10, 10),
+          pos(10, 10),
+          fixed(),
+      ]);
+  
+      const inputBox = modal.add([
+          rect(modalWidth - 160, inputAreaHeight),
+          color(255, 255, 255),
+          pos(10, modalHeight - inputAreaHeight - 10),
+          outline(2),
+          area(),
+          "inputBox",
+          fixed(),
+      ]);
+  
+      const inputTextDisplay = inputBox.add([
+          text("", {
+              size: 18, // Make text input smaller too
+              width: modalWidth - 180,
+              lineSpacing: 5,
+          }),
+          color(10, 10, 10),
+          pos(10, 10),
+          fixed(),
+      ]);
+  
+      const sendButton = modal.add([
+          rect(140, inputAreaHeight),
+          color(0, 150, 0),
+          pos(modalWidth - 150, modalHeight - inputAreaHeight - 10),
+          outline(2),
+          area(),
+          "sendButton",
+          fixed(),
+      ]);
+  
+      sendButton.add([
+          text("Send", { size: 20 }), // Slightly smaller
+          pos(70, inputAreaHeight / 2),
+          anchor("center"),
+          color(255, 255, 255),
+          fixed(),
+      ]);
+  
+      const closeButton = modal.add([
+          rect(100, 40),
+          color(200, 50, 50),
+          pos(modalWidth - 120, 10), // Top-right corner
+          outline(2),
+          area(),
+          "closeButton",
+          fixed(),
+      ]);
+  
+      closeButton.add([
+          text("Close", { size: 18 }), // Smaller for consistency
+          pos(50, 20),
+          anchor("center"),
+          color(255, 255, 255),
+          fixed(),
+      ]);
+  
+      function updateMessages() {
+          const maxMessages = Math.floor(chatAreaHeight / 24); // More messages fit now
+          const displayMessages = messages.slice(-maxMessages);
+          messagesDisplay.text = displayMessages.join("\n");
+      }
+  
+      function sendMessage() {
+          if (inputText.trim() !== "" && sessionId) {
+              let userMessage = inputText;
+              messages.push(`> You: ${userMessage}`);
+              inputText = "";
+              inputTextDisplay.text = "";
+              updateMessages();
+  
+              fetch(`/chat/${sessionId}`, {
+                  method: "POST",
+                  headers: {
+                      "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ message: userMessage }),
+              })
+                  .then((response) => response.json())
+                  .then((data) => {
+                      if (data.response) {
+                          messages.push(`[0-0] Bouncer Bot: ${data.response}`);
+                          updateMessages();
+                      } else {
+                          messages.push("⚠️ Error: No response from server.");
+                          updateMessages();
+                      }
+                  })
+                  .catch((error) => {
+                      console.error("Chat error:", error);
+                      messages.push("⚠️ Error sending message.");
+                      updateMessages();
+                  });
+          }
+      }
+  
+      sendButton.onClick(() => {
+          sendMessage();
+      });
+  
+      onKeyPress("enter", () => {
+          sendMessage();
+      });
+  
+      onKeyPress("backspace", () => {
+          inputText = inputText.slice(0, -1);
+          inputTextDisplay.text = inputText;
+      });
+  
+      onCharInput((char) => {
+          inputText += char;
+          inputTextDisplay.text = inputText;
+      });
+  
+      closeButton.onClick(() => {
+          if (sessionId) {
+              fetch(`/end_bouncer_test/${sessionId}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+              })
+                  .then((response) => response.json())
+                  .then((data) => {
+                      console.log(data.message);
+                  })
+                  .catch((error) => console.error("Error ending session:", error));
+          }
+          destroy(modalContainer);
+          player.isInDialogue = false;
+          sessionId = null;
+      });
+  
+      onKeyPress("escape", () => {
+          closeButton.click();
+      });
+  
+      updateMessages(); // Ensure initial messages are displayed
+  }
+  
+  
+
+    
+    function startBouncerConversation() {
+        const uuid = "b4d5adfe-1f93-45d0-a26e-0aaf5ca371cb"; // Replace with actual UUID
+    
+        fetch("/start_bouncer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uuid }),
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.session_id && data.initial_response) {
+                    openChatModal(data.initial_response, data.session_id); // Start chat with session ID
+                } else {
+                    openChatModal("⚠️ Error: No response from server.", null);
+                }
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+                openChatModal("⚠️ Error connecting to server.", null);
+            });
+    }
+    
+    player.onCollide("door", () => {
+        if (!player.isInDialogue) {
+            startBouncerConversation();
+        }
+    });
+    
+
     player.onCollide("npc", () => {
       player.isInDialogue = true;
       const dialogueBoxFixedContainer = add([fixed()]);
@@ -318,21 +453,5 @@ function setWorld(worldState) {
         easings.easeInBounce
       );
     }
-  
-    function onCollideWithPlayer(enemyName, player, worldState) {
-      player.onCollide(enemyName, () => {
-        flashScreen();
-        setTimeout(() => {
-          worldState.playerPos = player.pos;
-          worldState.enemyName = enemyName;
-          go("battle", worldState);
-        }, 1000);
-      });
-    }
-  
-    onCollideWithPlayer("cat", player, worldState);
-    onCollideWithPlayer("spider", player, worldState);
-    onCollideWithPlayer("centipede", player, worldState);
-    onCollideWithPlayer("grass", player, worldState);
   }
   

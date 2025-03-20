@@ -438,7 +438,7 @@ def start_bouncer():
     Mainly focus on the Customer profile rules. Make this a 4-5 questions exchange one after the other questions. don't ask all the questions at once
     \n\n
     The Game Developer uuid is {gamedev_id}.
-    The Wallet Address is 0x4FCFCebac99B81C68Ad4929Aa106ee2E0A94b989. 
+    The Wallet Address is 0xce5B960Ca4Ec646587dE979604A5c0A01fA72e81. 
     \n\nRules: {rules} """
     # Initialize a new agent instance.
     agent_executor, config = initialize_bouncer()
@@ -1018,7 +1018,7 @@ def save_tokenguard_settings():
         return jsonify({
             'message': 'TokenGuard settings saved successfully',
             'bouncer_rules': bouncer_rules
-        }), 201
+        }), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
