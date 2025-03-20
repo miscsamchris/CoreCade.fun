@@ -4,6 +4,7 @@
         <script src="{{ url_for('static', filename='js/assetLoader.js') }}"></script>
         <script src="{{ url_for('static', filename='js/scenes/world.js') }}"></script>
         <script src="{{ url_for('static', filename='js/scenes/battle.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/scenes/arcade.js') }}"></script>
         <title>CoreCade Gamespace</title>
         <script >
             kaboom({
@@ -15,10 +16,11 @@
             
             setBackground(Color.fromHex("#36A6E0"));
             
-            loadAssets("{{ url_for('static', filename='assets/characters.png')}}","{{ url_for('static', filename='assets/battleBackground.png')}}","{{ url_for('static', filename='assets/tiles.png')}}");
+            loadAssets("{{ url_for('static', filename='assets/characters.png')}}","{{ url_for('static', filename='assets/battleBackground.png')}}"
+            ,"{{ url_for('static', filename='assets/tiles.png')}}","{{ url_for('static', filename='assets/interiors.png')}}","{{ url_for('static', filename='assets/floors.png')}}");
             
             scene("world", (worldState) => setWorld(worldState));
-            scene("battle", (worldState) => setBattle(worldState));
+            scene("arcade", (worldState) => setArcade(worldState));
             
             go("world");
 

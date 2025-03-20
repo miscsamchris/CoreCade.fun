@@ -1,4 +1,4 @@
-function loadAssets(characters,background,tiles) {
+function loadAssets(characters,background,tiles,interior,floor) {
     loadSpriteAtlas(characters, {
       "player-down": { x: 0, y: 82, width: 16, height: 16 },
       "player-up": { x: 16, y: 82, width: 16, height: 16 },
@@ -28,6 +28,7 @@ function loadAssets(characters,background,tiles) {
       },
     });
     loadSprite("battle-background", background);
+    loadSpriteAtlas(interior,{"machine":{x: 4, y: 394, width: 24, height: 16}});
     loadSpriteAtlas(tiles, {
       tile: {
         x: 0,
@@ -59,6 +60,8 @@ function loadAssets(characters,background,tiles) {
           "ground-m": 42,
           "ground-r": 43,
           "rock-water": 60,
+          "concrete": 23,
+          "future": 15,
         },
       },
       door:{x: 0, y: 80, width: 16, height: 16 }
